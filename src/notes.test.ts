@@ -11,6 +11,8 @@ import type {
 const booking: ResolvedBooking = {
   bookingId: "1",
   serviceId: "10",
+  serviceNumber: "42",
+  billedClient: "Example Client",
   dealId: "20",
   projectId: "30",
   projectName: "Frontend",

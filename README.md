@@ -102,6 +102,8 @@ Options:
 
 - `npm run dev`
   - Run for today (no prompt flag).
+- `npm run bookings`
+  - Print current bookings (name, billed client, service number, and `.productive` service ID).
 - `npm run dev:confirm`
   - Run for today with submit prompts.
 - `npm run start`
@@ -110,6 +112,24 @@ Options:
   - Run tests.
 - `npm run build`
   - TypeScript build.
+
+## Using `npm run bookings`
+
+Use this before creating or updating `.productive` files.
+
+```bash
+npm run bookings
+```
+
+Optional:
+- `npm run bookings -- --date=YYYY-MM-DD`
+  - Show bookings for a specific date.
+- `npm run bookings -- --debug-client`
+  - Show where billed client was resolved from.
+
+Important:
+- Put `Service ID (.productive)` in `.productive` files.
+- `Service number` is a human-friendly number shown in Productive and is not used for mapping.
 
 ## Setup
 

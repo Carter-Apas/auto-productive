@@ -78,6 +78,8 @@ export type TimeEntryResource = JsonApiResource<
 export interface ResolvedBooking {
   bookingId: string;
   serviceId: string;
+  serviceNumber: string;
+  billedClient: string | null;
   dealId: string;
   projectId: string;
   projectName: string;

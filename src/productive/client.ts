@@ -27,7 +27,7 @@ function getHeaders(): Record<string, string> {
 
 export async function apiGet<T extends JsonApiResource>(
   path: string,
-  params?: Record<string, string>,
+  params?: Record<string, string>
 ): Promise<JsonApiResponse<T>> {
   const url = new URL(`${BASE_URL}/${path}`);
   if (params) {
@@ -49,7 +49,7 @@ export async function apiGet<T extends JsonApiResource>(
 
 export async function apiGetAll<T extends JsonApiResource>(
   path: string,
-  params?: Record<string, string>,
+  params?: Record<string, string>
 ): Promise<T[]> {
   const allData: T[] = [];
   let page = 1;
@@ -76,7 +76,7 @@ export async function apiGetAll<T extends JsonApiResource>(
 
 export async function apiGetWithIncluded<T extends JsonApiResource>(
   path: string,
-  params?: Record<string, string>,
+  params?: Record<string, string>
 ): Promise<{ data: T[]; included: JsonApiResource[] }> {
   const allData: T[] = [];
   const allIncluded: JsonApiResource[] = [];
@@ -107,7 +107,7 @@ export async function apiGetWithIncluded<T extends JsonApiResource>(
 
 export async function apiPost<T extends JsonApiResource>(
   path: string,
-  body: unknown,
+  body: unknown
 ): Promise<JsonApiResponse<T>> {
   const url = `${BASE_URL}/${path}`;
 
