@@ -1,0 +1,13 @@
+[Unit]
+Description=Auto-productive time entry creator
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/carter/Projects/personal/auto-productive
+ExecStart=/usr/bin/node dist/index.js
+EnvironmentFile=/home/carter/Projects/personal/auto-productive/.env
+
+[Install]
+WantedBy=default.target

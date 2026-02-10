@@ -1,0 +1,26 @@
+{
+  "name": "auto-productive",
+  "version": "1.0.0",
+  "description": "Automatic Productive.io time entry tool",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "op run --env-file='./.env'  -- tsx src/index.ts --confirm --date=$(printf '%(%Y-%m-%d)T' -1)",
+    "start": "op run --env-file='./.env' tsx ./src/index.ts --confirm",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint --fix ./src"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@cartercree/eslint-config": "^2.1.2",
+    "@types/node": "^22.13.0",
+    "eslint": "^9.39.2",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
