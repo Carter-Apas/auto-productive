@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readdir, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
@@ -9,14 +9,14 @@ import type { GitCommit, RepoActivity } from "../types.js";
 const execFileAsync = promisify(execFile);
 
 export async function collectGitActivity(
-  scanDirs: string[],
+  productiveFolders: string[],
   author: string,
   date: string,
 ): Promise<RepoActivity[]> {
   logger.info(`Collecting git activity for ${author} on ${date}`);
 
-  const repos = await discoverRepos(scanDirs);
-  logger.info(`Discovered ${repos.length} git repo(s)`);
+  const repos = await resolveGitRepos(productiveFolders);
+  logger.info(`Found ${repos.length} git repo(s) from .productive folders`);
 
   const activities: RepoActivity[] = [];
 
@@ -36,44 +36,16 @@ export async function collectGitActivity(
   return activities;
 }
 
-async function discoverRepos(scanDirs: string[]): Promise<string[]> {
+async function resolveGitRepos(productiveFolders: string[]): Promise<string[]> {
+  const uniqueFolders = [...new Set(productiveFolders)];
   const repos: string[] = [];
 
-  for (const scanDir of scanDirs) {
-    try {
-      const entries = await readdir(scanDir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        if (!entry.isDirectory()) {
-          continue;
-        }
-        const dirPath = join(scanDir, entry.name);
-
-        // Check if this directory itself is a git repo
-        if (await isGitRepo(dirPath)) {
-          repos.push(dirPath);
-          continue;
-        }
-
-        // Check one level deeper
-        try {
-          const subEntries = await readdir(dirPath, { withFileTypes: true });
-          for (const subEntry of subEntries) {
-            if (!subEntry.isDirectory()) {
-              continue;
-            }
-            const subPath = join(dirPath, subEntry.name);
-            if (await isGitRepo(subPath)) {
-              repos.push(subPath);
-            }
-          }
-        } catch {
-          // Can't read subdirectory, skip
-        }
-      }
-    } catch {
-      logger.warn(`Cannot read scan directory: ${scanDir}`);
+  for (const folder of uniqueFolders) {
+    if (await isGitRepo(folder)) {
+      repos.push(folder);
+      continue;
     }
+    logger.warn(`Skipping .productive folder that is not a git repo: ${folder}`);
   }
 
   return repos;

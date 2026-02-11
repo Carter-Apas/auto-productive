@@ -59,7 +59,7 @@ Options:
 Environment:
   OPENAI_API_KEY            Required for note formatting (or use CHATGPT_API_KEY)
   CHATGPT_MODEL             Optional model override (default: gpt-4o-mini)
-  SCAN_DIRS                 Comma-separated root folders to scan for repos and .productive files`);
+  SCAN_DIRS                 Comma-separated root folders to scan for .productive files`);
       process.exit(0);
     } else {
       console.error(`Unknown argument: ${arg}`);
@@ -79,7 +79,7 @@ export function loadConfig(): Config {
     productivePersonId: requireEnv("PRODUCTIVE_PERSON_ID"),
     chatgptApiKey: requireAnyEnv(["CHATGPT_API_KEY", "OPENAI_API_KEY"]),
     chatgptModel: process.env.CHATGPT_MODEL || "gpt-4o-mini",
-    scanDirs: requireAnyEnv(["SCAN_DIRS", "GIT_SCAN_DIRS"])
+    scanDirs: requireEnv("SCAN_DIRS")
       .split(",")
       .map((d) => d.trim()),
     gitAuthorName: requireEnv("GIT_AUTHOR_NAME"),

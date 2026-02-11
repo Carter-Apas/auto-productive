@@ -31,7 +31,8 @@ Multiple folders can map to the same `service_id`. All of them are used.
 
 ### 3. Collect activity for the date
 - Git activity:
-  - scans repos under `SCAN_DIRS`
+  - starts from folders that contain `.productive` under `SCAN_DIRS`
+  - keeps only folders that are valid git repos
   - runs `git log` for the configured author and day window
   - author matching is case-insensitive
 - Codex activity:
@@ -66,7 +67,7 @@ Required:
 - `PRODUCTIVE_PERSON_ID`
   - Person id whose bookings/time entries are processed.
 - `SCAN_DIRS`
-  - Comma-separated root folders to scan for repos and `.productive` files.
+  - Comma-separated root folders to scan for `.productive` files.
   - Example: `/home/carter/project_folders,home/carter/more_project_folders`
 - `GIT_AUTHOR_NAME`
   - Value used in `git log --author=...` (case-insensitive match).
@@ -79,8 +80,6 @@ Optional:
 - `CHATGPT_MODEL`
   - Model for formatting notes.
   - Default: `gpt-4o-mini`
-- `GIT_SCAN_DIRS`
-  - Backward-compatible fallback if `SCAN_DIRS` is not set.
 
 See `.env.example` for a template.
 

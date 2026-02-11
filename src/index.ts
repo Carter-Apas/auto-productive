@@ -68,12 +68,6 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Step 2: Collect activity data
-  const [gitActivities, codexActivities] = await Promise.all([
-    collectGitActivity(config.scanDirs, config.gitAuthorName, config.date),
-    collectCodexActivity(config.codexSessionsDir, config.scanDirs, config.date),
-  ]);
-
   const serviceFolders = await discoverServiceFolders(config.scanDirs);
   const mappedFolderCount = [...serviceFolders.values()].reduce(
     (sum, folders) => sum + folders.length,
@@ -82,6 +76,13 @@ async function main(): Promise<void> {
   logger.info(
     `Found ${mappedFolderCount} folder(s) with .productive across ${serviceFolders.size} service id(s)`,
   );
+  const mappedFolders = [...new Set([...serviceFolders.values()].flat())];
+
+  // Step 2: Collect activity data
+  const [gitActivities, codexActivities] = await Promise.all([
+    collectGitActivity(mappedFolders, config.gitAuthorName, config.date),
+    collectCodexActivity(config.codexSessionsDir, config.scanDirs, config.date),
+  ]);
 
   let created = 0;
   let skipped = 0;
