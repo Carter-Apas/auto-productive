@@ -19,7 +19,7 @@ interface JsonObject {
 export async function collectCodexActivity(
   codexSessionsDir: string,
   scanDirs: string[],
-  date: string,
+  date: string
 ): Promise<CodexSessionActivity[]> {
   logger.info(`Collecting Codex session activity for ${date}`);
 
@@ -28,7 +28,7 @@ export async function collectCodexActivity(
     codexSessionsDir,
     date.slice(0, 4),
     date.slice(5, 7),
-    date.slice(8, 10),
+    date.slice(8, 10)
   );
 
   let sessionFiles: string[];
@@ -42,7 +42,7 @@ export async function collectCodexActivity(
 
   for (const sessionFile of sessionFiles) {
     const filePath = join(dayDir, sessionFile);
-    const parsed = await parseSessionFile(filePath, date);
+    const parsed = await parseSessionFile(filePath);
 
     if (!parsed.projectPath || parsed.summaries.length === 0) {
       continue;
@@ -50,7 +50,7 @@ export async function collectCodexActivity(
 
     if (!pathInScanDirs(parsed.projectPath, scanDirs)) {
       logger.debug(
-        `Skipping Codex session outside scan dirs: ${parsed.projectPath}`,
+        `Skipping Codex session outside scan dirs: ${parsed.projectPath}`
       );
       continue;
     }
@@ -64,14 +64,13 @@ export async function collectCodexActivity(
   }
 
   logger.info(
-    `Found ${activities.length} Codex session(s) with activity on ${date}`,
+    `Found ${activities.length} Codex session(s) with activity on ${date}`
   );
   return activities;
 }
 
 async function parseSessionFile(
-  filePath: string,
-  date: string,
+  filePath: string
 ): Promise<ParsedSession> {
   const summaries: string[] = [];
   let projectPath: string | null = null;
@@ -90,9 +89,6 @@ async function parseSessionFile(
     try {
       const entry = JSON.parse(line) as JsonObject;
       const entryType = entry.type;
-      const timestamp = entry.timestamp;
-      const onTargetDate =
-        typeof timestamp === "string" && timestamp.startsWith(date);
 
       if (entryType === "session_meta" && isJsonObject(entry.payload)) {
         const cwd = entry.payload.cwd;
@@ -107,10 +103,18 @@ async function parseSessionFile(
       }
 
       if (
-        !onTargetDate ||
         entryType !== "response_item" ||
         !isJsonObject(entry.payload)
       ) {
+        if (
+          entryType === "event_msg" &&
+          isJsonObject(entry.payload) &&
+          entry.payload.type === "user_message" &&
+          typeof entry.payload.message === "string" &&
+          isLikelyUserPrompt(entry.payload.message)
+        ) {
+          summaries.push(entry.payload.message.trim());
+        }
         continue;
       }
 
@@ -185,7 +189,7 @@ function normalizePath(path: string): string {
 
 export function pathInScanDirs(
   projectPath: string,
-  scanDirs: string[],
+  scanDirs: string[]
 ): boolean {
   const normalizedProjectPath = normalizePath(projectPath);
 
