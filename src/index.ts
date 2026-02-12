@@ -17,33 +17,72 @@ import type { ProjectMatch } from "./types.js";
 
 type SubmissionDecision = "submit" | "skip" | "cancel";
 type PromptInterface = ReturnType<typeof createInterface>;
+interface PromptResult {
+  decision: SubmissionDecision;
+  note: string;
+}
+
+async function promptForEditedNote(
+  rl: PromptInterface,
+  existingNote: string
+): Promise<string> {
+  console.log("\n━━━ Edit Note ━━━");
+  console.log(
+    "Enter the full replacement note. End input with a single '.' on its own line."
+  );
+  console.log("Leave it empty and enter '.' to keep the existing note.");
+
+  const lines: string[] = [];
+  while (true) {
+    const line = await rl.question("note> ");
+    if (line.trim() === ".") {
+      break;
+    }
+    lines.push(line);
+  }
+
+  const nextNote = lines.join("\n").trim();
+  if (!nextNote) {
+    logger.info("  Kept existing note.");
+    return existingNote;
+  }
+
+  logger.info("  Updated note.");
+  return nextNote;
+}
 
 async function promptBeforeSubmit(
   rl: PromptInterface,
   bookingName: string,
   timeMinutes: number,
-  note: string,
-): Promise<SubmissionDecision> {
-  console.log(`\n━━━ Ready To Submit: ${bookingName} (${timeMinutes} min) ━━━`);
-  console.log(note || "(no activity notes)");
+  note: string
+): Promise<PromptResult> {
+  let currentNote = note;
 
   while (true) {
+    console.log(`\n━━━ Ready To Submit: ${bookingName} (${timeMinutes} min) ━━━`);
+    console.log(currentNote || "(no activity notes)");
+
     const answer = (
       await rl.question(
-        "Submit this entry? [y]es / [s]kip / [c]ancel remaining: ",
+        "Submit this entry? [y]es / [e]dit note / [s]kip / [c]ancel remaining: "
       )
     )
       .trim()
       .toLowerCase();
 
     if (answer === "y" || answer === "yes") {
-      return "submit";
+      return { decision: "submit", note: currentNote };
+    }
+    if (answer === "e" || answer === "edit") {
+      currentNote = await promptForEditedNote(rl, currentNote);
+      continue;
     }
     if (answer === "s" || answer === "skip") {
-      return "skip";
+      return { decision: "skip", note: currentNote };
     }
     if (answer === "c" || answer === "cancel") {
-      return "cancel";
+      return { decision: "cancel", note: currentNote };
     }
   }
 }
@@ -52,7 +91,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
 
   logger.info(
-    `auto-productive starting for ${config.date}${config.confirm ? " (CONFIRM)" : ""}`,
+    `auto-productive starting for ${config.date}${config.confirm ? " (CONFIRM)" : ""}`
   );
 
   // Initialize API client
@@ -71,10 +110,10 @@ async function main(): Promise<void> {
   const serviceFolders = await discoverServiceFolders(config.scanDirs);
   const mappedFolderCount = [...serviceFolders.values()].reduce(
     (sum, folders) => sum + folders.length,
-    0,
+    0
   );
   logger.info(
-    `Found ${mappedFolderCount} folder(s) with .productive across ${serviceFolders.size} service id(s)`,
+    `Found ${mappedFolderCount} folder(s) with .productive across ${serviceFolders.size} service id(s)`
   );
   const mappedFolders = [...new Set([...serviceFolders.values()].flat())];
 
@@ -101,7 +140,7 @@ async function main(): Promise<void> {
       if (folders.length === 0) {
         bookingsWithoutFolders++;
         logger.warn(
-          `No .productive folder found for booking service_id ${booking.serviceId} (${booking.serviceName})`,
+          `No .productive folder found for booking service_id ${booking.serviceId} (${booking.serviceName})`
         );
       }
 
@@ -136,28 +175,29 @@ async function main(): Promise<void> {
       }
 
       const rawNote = formatNotes(matches);
-      const note = await formatNoteWithChatGPT(
+      let note = await formatNoteWithChatGPT(
         rawNote,
         booking.projectName,
         config.chatgptApiKey,
-        config.chatgptModel,
+        config.chatgptModel
       );
 
       if (rl) {
-        const decision = await promptBeforeSubmit(
+        const promptResult = await promptBeforeSubmit(
           rl,
           `${booking.projectName} / ${booking.serviceName}`,
           booking.timeMinutes,
-          note,
+          note
         );
-        if (decision === "skip") {
+        note = promptResult.note;
+        if (promptResult.decision === "skip") {
           skipped++;
           logger.info(
-            `  Skipping ${booking.projectName} / ${booking.serviceName} by user choice`,
+            `  Skipping ${booking.projectName} / ${booking.serviceName} by user choice`
           );
           continue;
         }
-        if (decision === "cancel") {
+        if (promptResult.decision === "cancel") {
           cancelled = true;
           logger.warn("Submission cancelled by user.");
           break;
@@ -168,7 +208,7 @@ async function main(): Promise<void> {
         config.productivePersonId,
         config.date,
         booking,
-        note,
+        note
       );
 
       if (success) {

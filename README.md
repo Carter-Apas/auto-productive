@@ -91,7 +91,7 @@ auto-productive [options]
 
 Options:
 - `--confirm`
-  - Prompt before each submission: yes, skip, or cancel remaining.
+  - Prompt before each submission: yes, edit note, skip, or cancel remaining.
 - `--date=YYYY-MM-DD`
   - Run for a specific date.
 - `--help`
