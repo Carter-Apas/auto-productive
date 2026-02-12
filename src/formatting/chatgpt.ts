@@ -37,7 +37,7 @@ export async function formatNoteWithChatGPT(
   note: string,
   projectName: string,
   apiKey: string,
-  model: string,
+  model: string
 ): Promise<string> {
   const raw = note.trim();
   if (!raw) {
@@ -57,6 +57,7 @@ export async function formatNoteWithChatGPT(
     "- Message only about what has been done.",
     "- No bullet points just sentences.",
     "- No titles or project id's.",
+    "- No small changes like linting or merging, just features and fixes.",
     "",
     raw,
   ].join("\n");
@@ -89,7 +90,7 @@ export async function formatNoteWithChatGPT(
     if (!response.ok) {
       const errorText = await response.text();
       logger.warn(
-        `ChatGPT formatting failed (${response.status}): ${errorText}`,
+        `ChatGPT formatting failed (${response.status}): ${errorText}`
       );
       return truncate(raw);
     }
