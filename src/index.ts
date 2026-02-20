@@ -1,3 +1,7 @@
+import { spawn } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 
 import { loadConfig } from "./config.js";
@@ -22,33 +26,54 @@ interface PromptResult {
   note: string;
 }
 
+function resolveEditor(): string {
+  return process.env.VISUAL || process.env.EDITOR || "vi";
+}
+
 async function promptForEditedNote(
-  rl: PromptInterface,
-  existingNote: string
+  existingNote: string,
+  rl?: PromptInterface
 ): Promise<string> {
   console.log("\n━━━ Edit Note ━━━");
   console.log(
-    "Enter the full replacement note. End input with a single '.' on its own line."
+    "Opening your editor with the current note preloaded. Save and close to continue."
   );
-  console.log("Leave it empty and enter '.' to keep the existing note.");
 
-  const lines: string[] = [];
-  while (true) {
-    const line = await rl.question("note> ");
-    if (line.trim() === ".") {
-      break;
+  const tempDir = await mkdtemp(join(tmpdir(), "auto-productive-note-"));
+  const tempFile = join(tempDir, "note.md");
+  const editor = resolveEditor();
+
+  await writeFile(tempFile, existingNote, "utf-8");
+
+  try {
+    rl?.pause();
+    const exitCode = await new Promise<number>((resolve, reject) => {
+      const child = spawn(editor, [tempFile], {
+        stdio: "inherit",
+      });
+      child.on("error", reject);
+      child.on("close", (code) => resolve(code ?? 1));
+    });
+
+    if (exitCode !== 0) {
+      logger.warn(
+        `  Editor exited with status ${exitCode}; kept existing note.`
+      );
+      return existingNote;
     }
-    lines.push(line);
-  }
 
-  const nextNote = lines.join("\n").trim();
-  if (!nextNote) {
-    logger.info("  Kept existing note.");
-    return existingNote;
-  }
+    const nextNote = (await readFile(tempFile, "utf-8")).trim();
+    if (!nextNote) {
+      logger.info("  Kept existing note.");
+      return existingNote;
+    }
 
-  logger.info("  Updated note.");
-  return nextNote;
+    logger.info("  Updated note.");
+    return nextNote;
+  } finally {
+    rl?.resume();
+    await rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 async function promptBeforeSubmit(
@@ -60,7 +85,9 @@ async function promptBeforeSubmit(
   let currentNote = note;
 
   while (true) {
-    console.log(`\n━━━ Ready To Submit: ${bookingName} (${timeMinutes} min) ━━━`);
+    console.log(
+      `\n━━━ Ready To Submit: ${bookingName} (${timeMinutes} min) ━━━`
+    );
     console.log(currentNote || "(no activity notes)");
 
     const answer = (
@@ -75,7 +102,7 @@ async function promptBeforeSubmit(
       return { decision: "submit", note: currentNote };
     }
     if (answer === "e" || answer === "edit") {
-      currentNote = await promptForEditedNote(rl, currentNote);
+      currentNote = await promptForEditedNote(currentNote, rl);
       continue;
     }
     if (answer === "s" || answer === "skip") {
@@ -116,12 +143,32 @@ async function main(): Promise<void> {
     `Found ${mappedFolderCount} folder(s) with .productive across ${serviceFolders.size} service id(s)`
   );
   const mappedFolders = [...new Set([...serviceFolders.values()].flat())];
+  if (mappedFolders.length > 0) {
+    logger.info("Folders found via .productive:");
+    for (const folder of mappedFolders) {
+      logger.info(`  - ${folder}`);
+    }
+  }
 
   // Step 2: Collect activity data
   const [gitActivities, codexActivities] = await Promise.all([
     collectGitActivity(mappedFolders, config.gitAuthorName, config.date),
     collectCodexActivity(config.codexSessionsDir, config.scanDirs, config.date),
   ]);
+  if (gitActivities.length > 0) {
+    logger.info("Git repos with activity:");
+    for (const repo of gitActivities) {
+      logger.info(`  - ${repo.repoPath} (${repo.commits.length} commit(s))`);
+    }
+  }
+  if (codexActivities.length > 0) {
+    logger.info("Codex sessions with activity:");
+    for (const session of codexActivities) {
+      logger.info(
+        `  - ${session.sessionId} @ ${session.projectPath} (${session.summaries.length} prompt(s))`
+      );
+    }
+  }
 
   let created = 0;
   let skipped = 0;

@@ -8,7 +8,7 @@
     "build": "tsc",
     "dev": "op run --env-file='./.env'  -- tsx src/index.ts --confirm --date=$(printf '%(%Y-%m-%d)T' -1)",
     "bookings": "op run --env-file='./.env' -- tsx ./src/bookings.ts",
-    "start": "op run --env-file='./.env' tsx ./src/index.ts --confirm",
+    "start": "op run --env-file='./.env' -- tsx ./src/index.ts --confirm",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint --fix ./src"
